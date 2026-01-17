@@ -24,4 +24,11 @@ public class MemberServiceImpl implements MemberService {
     public List<Member> getAllMembers() {
         return memberRepository.findAll();
     }
+
+    // NEW
+    @Override
+    public Member getMemberById(Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+    }
 }
