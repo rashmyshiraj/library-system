@@ -8,12 +8,13 @@ import com.rashmy.library.exception.NotFoundException;
 import com.rashmy.library.repository.BookRepository;
 import com.rashmy.library.repository.MemberRepository;
 import com.rashmy.library.repository.TransactionRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Service
 public class TransactionService {
@@ -22,9 +23,8 @@ public class TransactionService {
     private final MemberRepository memberRepository;
     private final BookRepository bookRepository;
 
-    // CONFIG (admin-controlled later)
-    private double normalFeePerDay = 10.0;
-    private double overdueMultiplier = 0.5;
+    // fee per overdue day (admin-changeable later)
+    private double feePerDay = 10.0;
 
     public TransactionService(TransactionRepository transactionRepository,
                               MemberRepository memberRepository,
@@ -42,13 +42,18 @@ public class TransactionService {
                 .orElseThrow(() -> new NotFoundException("Book not found"));
 
         if (!book.isAvailable()) {
-            throw new BadRequestException("Book already borrowed");
+            throw new BadRequestException("Book is already borrowed");
         }
 
         book.setAvailable(false);
         bookRepository.save(book);
 
-        return transactionRepository.save(new Transaction(member, book));
+        Transaction transaction = new Transaction(member, book);
+        transaction.setBorrowedAt(LocalDateTime.now());
+        transaction.setDueDate(LocalDate.now().plusDays(14));
+        transaction.setReturned(false);
+
+        return transactionRepository.save(transaction);
     }
 
     public Transaction returnBook(Long transactionId) {
@@ -62,27 +67,15 @@ public class TransactionService {
         transaction.setReturned(true);
         transaction.setReturnedAt(LocalDateTime.now());
 
-        // 🔹 NORMAL FEE
-        long borrowedDays = ChronoUnit.DAYS.between(
-                transaction.getBorrowedAt().toLocalDate(),
-                transaction.getReturnedAt().toLocalDate()
-        );
-        borrowedDays = Math.max(1, borrowedDays);
-        double normalFee = borrowedDays * normalFeePerDay;
+        LocalDate dueDate = transaction.getDueDate();
+        LocalDate returnedDate = transaction.getReturnedAt().toLocalDate();
 
-        // 🔹 OVERDUE FEE (INCREASING)
-        long overdueDays = ChronoUnit.DAYS.between(
-                transaction.getDueDate(),
-                transaction.getReturnedAt().toLocalDate()
-        );
-        overdueDays = Math.max(0, overdueDays);
-
-        double overdueFee = normalFeePerDay * overdueMultiplier
-                * (overdueDays * (overdueDays + 1) / 2.0);
-
-        transaction.setNormalFee(normalFee);
-        transaction.setOverdueFee(overdueFee);
-        transaction.setTotalFee(normalFee + overdueFee);
+        if (returnedDate.isAfter(dueDate)) {
+            long overdueDays = ChronoUnit.DAYS.between(dueDate, returnedDate);
+            transaction.setOverdueFee(overdueDays * feePerDay);
+        } else {
+            transaction.setOverdueFee(0);
+        }
 
         Book book = transaction.getBook();
         book.setAvailable(true);
@@ -91,18 +84,28 @@ public class TransactionService {
         return transactionRepository.save(transaction);
     }
 
-    public List<Transaction> getAllTransactions() {
-        return transactionRepository.findAll();
+    // 🔥 PAGINATION: all transactions
+    public Page<Transaction> getAllTransactions(Pageable pageable) {
+        return transactionRepository.findAll(pageable);
     }
 
-    public List<Transaction> getOverdueTransactions() {
-        return transactionRepository.findByReturnedFalseAndDueDateBefore(LocalDate.now());
+    // 🔥 PAGINATION: overdue transactions
+    public Page<Transaction> getOverdueTransactions(Pageable pageable) {
+        return transactionRepository
+                .findByReturnedFalseAndDueDateBefore(LocalDate.now(), pageable);
     }
 
-    public List<Transaction> getOverdueTransactionsByMember(Long memberId) {
+    // 🔥 PAGINATION: overdue transactions by member
+    public Page<Transaction> getOverdueTransactionsByMember(Long memberId, Pageable pageable) {
         if (!memberRepository.existsById(memberId)) {
             throw new NotFoundException("Member not found");
         }
-        return transactionRepository.findByMemberIdAndReturnedFalseAndDueDateBefore(memberId, LocalDate.now());
+
+        return transactionRepository
+                .findByMemberIdAndReturnedFalseAndDueDateBefore(
+                        memberId,
+                        LocalDate.now(),
+                        pageable
+                );
     }
 }

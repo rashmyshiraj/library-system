@@ -2,10 +2,10 @@ package com.rashmy.library.controller;
 
 import com.rashmy.library.entity.Book;
 import com.rashmy.library.repository.BookRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/books")
@@ -17,10 +17,10 @@ public class BookController {
         this.bookRepository = bookRepository;
     }
 
-    // 1) GET all books
+    // 🔥 1) GET all books (PAGINATED)
     @GetMapping
-    public List<Book> getAllBooks() {
-        return bookRepository.findAll();
+    public ResponseEntity<Page<Book>> getAllBooks(Pageable pageable) {
+        return ResponseEntity.ok(bookRepository.findAll(pageable));
     }
 
     // 2) GET book by id
@@ -33,8 +33,8 @@ public class BookController {
 
     // 3) POST create new book
     @PostMapping
-    public Book createBook(@RequestBody Book book) {
-        return bookRepository.save(book);
+    public ResponseEntity<Book> createBook(@RequestBody Book book) {
+        return ResponseEntity.ok(bookRepository.save(book));
     }
 
     // 4) PUT update book
