@@ -9,16 +9,8 @@ import java.time.LocalDate;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
-    // PAGINATED: all transactions
-    Page<Transaction> findAll(Pageable pageable);
+    Page<Transaction> findAllByReturnedFalseAndDueDateBefore(LocalDate date, Pageable pageable);
 
-    // PAGINATED: overdue transactions
-    Page<Transaction> findByReturnedFalseAndDueDateBefore(LocalDate date, Pageable pageable);
-
-    // PAGINATED: overdue transactions by member
-    Page<Transaction> findByMemberIdAndReturnedFalseAndDueDateBefore(
-            Long memberId,
-            LocalDate date,
-            Pageable pageable
-    );
+    Page<Transaction> findAllByMemberIdAndReturnedFalseAndDueDateBefore(
+            Long memberId, LocalDate date, Pageable pageable);
 }

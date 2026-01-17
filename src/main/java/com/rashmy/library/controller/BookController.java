@@ -1,45 +1,51 @@
 package com.rashmy.library.controller;
 
+import com.rashmy.library.dto.BookDTO;
 import com.rashmy.library.entity.Book;
 import com.rashmy.library.repository.BookRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.rashmy.library.service.BookService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/books")
 public class BookController {
 
+    private final BookService bookService;
     private final BookRepository bookRepository;
 
-    public BookController(BookRepository bookRepository) {
+    public BookController(BookService bookService, BookRepository bookRepository) {
+        this.bookService = bookService;
         this.bookRepository = bookRepository;
     }
 
-    // 🔥 1) GET all books (PAGINATED)
+    // GET all books (DTO)
     @GetMapping
-    public ResponseEntity<Page<Book>> getAllBooks(Pageable pageable) {
-        return ResponseEntity.ok(bookRepository.findAll(pageable));
+    public ResponseEntity<List<BookDTO>> getAllBooks() {
+        return ResponseEntity.ok(bookService.getAllBooks());
     }
 
-    // 2) GET book by id
+    // GET by id
     @GetMapping("/{id}")
-    public ResponseEntity<Book> getBookById(@PathVariable Long id) {
+    public ResponseEntity<BookDTO> getBookById(@PathVariable Long id) {
         return bookRepository.findById(id)
+                .map(bookService::toDTO)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 3) POST create new book
+    // POST create
     @PostMapping
-    public ResponseEntity<Book> createBook(@RequestBody Book book) {
-        return ResponseEntity.ok(bookRepository.save(book));
+    public ResponseEntity<BookDTO> createBook(@RequestBody Book book) {
+        Book saved = bookRepository.save(book);
+        return ResponseEntity.ok(bookService.toDTO(saved));
     }
 
-    // 4) PUT update book
+    // PUT update
     @PutMapping("/{id}")
-    public ResponseEntity<Book> updateBook(
+    public ResponseEntity<BookDTO> updateBook(
             @PathVariable Long id,
             @RequestBody Book bookDetails) {
 
@@ -49,12 +55,14 @@ public class BookController {
                     book.setAuthor(bookDetails.getAuthor());
                     book.setIsbn(bookDetails.getIsbn());
                     book.setAvailable(bookDetails.isAvailable());
-                    return ResponseEntity.ok(bookRepository.save(book));
+                    book.setImageUrl(bookDetails.getImageUrl());
+                    Book updated = bookRepository.save(book);
+                    return ResponseEntity.ok(bookService.toDTO(updated));
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // 5) DELETE book
+    // DELETE
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
         return bookRepository.findById(id)

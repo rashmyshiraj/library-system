@@ -1,6 +1,6 @@
 package com.rashmy.library.controller;
 
-import com.rashmy.library.entity.Transaction;
+import com.rashmy.library.dto.TransactionDTO;
 import com.rashmy.library.service.TransactionService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +18,7 @@ public class TransactionController {
     }
 
     @PostMapping("/borrow")
-    public ResponseEntity<Transaction> borrowBook(
+    public ResponseEntity<TransactionDTO> borrowBook(
             @RequestParam Long memberId,
             @RequestParam Long bookId
     ) {
@@ -26,27 +26,24 @@ public class TransactionController {
     }
 
     @PostMapping("/return")
-    public ResponseEntity<Transaction> returnBook(
+    public ResponseEntity<TransactionDTO> returnBook(
             @RequestParam Long transactionId
     ) {
         return ResponseEntity.ok(transactionService.returnBook(transactionId));
     }
 
-    // 🔥 PAGINATED: all transactions
     @GetMapping
-    public ResponseEntity<Page<Transaction>> getAll(Pageable pageable) {
+    public ResponseEntity<Page<TransactionDTO>> getAll(Pageable pageable) {
         return ResponseEntity.ok(transactionService.getAllTransactions(pageable));
     }
 
-    // 🔥 PAGINATED: overdue transactions
     @GetMapping("/overdue")
-    public ResponseEntity<Page<Transaction>> getOverdue(Pageable pageable) {
+    public ResponseEntity<Page<TransactionDTO>> getOverdue(Pageable pageable) {
         return ResponseEntity.ok(transactionService.getOverdueTransactions(pageable));
     }
 
-    // 🔥 PAGINATED: overdue transactions by member
     @GetMapping("/overdue/member/{memberId}")
-    public ResponseEntity<Page<Transaction>> getOverdueByMember(
+    public ResponseEntity<Page<TransactionDTO>> getOverdueByMember(
             @PathVariable Long memberId,
             Pageable pageable
     ) {
