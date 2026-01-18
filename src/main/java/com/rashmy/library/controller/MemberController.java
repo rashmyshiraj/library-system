@@ -5,12 +5,11 @@ import com.rashmy.library.dto.MemberDTO;
 import com.rashmy.library.entity.Member;
 import com.rashmy.library.entity.Role;
 import com.rashmy.library.service.MemberService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/members")
@@ -44,16 +43,7 @@ public class MemberController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MemberDTO>> getAllMembers() {
-        List<MemberDTO> members = memberService.getAllMembers().stream().map(saved -> {
-            MemberDTO dto = new MemberDTO();
-            dto.setId(saved.getId());
-            dto.setName(saved.getName());
-            dto.setEmail(saved.getEmail());
-            dto.setRole(saved.getRole().name());
-            return dto;
-        }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(members);
+    public ResponseEntity<Page<MemberDTO>> getAllMembers(Pageable pageable) {
+        return ResponseEntity.ok(memberService.getAllMembers(pageable));
     }
 }
