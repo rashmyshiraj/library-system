@@ -25,10 +25,8 @@ public class MemberServiceImpl implements MemberService {
         return memberRepository.findAll();
     }
 
-    // NEW
     @Override
-    public Member getMemberById(Long memberId) {
-        return memberRepository.findById(memberId)
-                .orElseThrow(() -> new RuntimeException("Member not found"));
+    public Member findByEmail(String email) {
+        return memberRepository.findByEmail(email).orElse(null);
     }
 }

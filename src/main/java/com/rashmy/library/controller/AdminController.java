@@ -5,27 +5,25 @@ import com.rashmy.library.dto.MemberDTO;
 import com.rashmy.library.entity.Member;
 import com.rashmy.library.entity.Role;
 import com.rashmy.library.service.MemberService;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 @RestController
-@RequestMapping("/api/members")
-public class MemberController {
+@RequestMapping("/api/admin")
+public class AdminController {
 
     private final MemberService memberService;
     private final BCryptPasswordEncoder passwordEncoder;
 
-    public MemberController(MemberService memberService, BCryptPasswordEncoder passwordEncoder) {
+    public AdminController(MemberService memberService, BCryptPasswordEncoder passwordEncoder) {
         this.memberService = memberService;
         this.passwordEncoder = passwordEncoder;
     }
 
-    @PostMapping
-    public ResponseEntity<MemberDTO> addMember(@RequestBody MemberCreateDTO dto) {
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/create-member")
+    public MemberDTO createMember(@RequestBody MemberCreateDTO dto) {
         Member member = new Member();
         member.setName(dto.getName());
         member.setEmail(dto.getEmail());
@@ -40,20 +38,6 @@ public class MemberController {
         out.setEmail(saved.getEmail());
         out.setRole(saved.getRole().name());
 
-        return ResponseEntity.ok(out);
-    }
-
-    @GetMapping
-    public ResponseEntity<List<MemberDTO>> getAllMembers() {
-        List<MemberDTO> members = memberService.getAllMembers().stream().map(saved -> {
-            MemberDTO dto = new MemberDTO();
-            dto.setId(saved.getId());
-            dto.setName(saved.getName());
-            dto.setEmail(saved.getEmail());
-            dto.setRole(saved.getRole().name());
-            return dto;
-        }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(members);
+        return out;
     }
 }
